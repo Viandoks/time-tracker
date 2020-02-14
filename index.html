@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--Import Google Icon Font-->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!--Import materialize.css-->
+    <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+
+    <!--Let browser know website is optimized for mobile-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        tr.dark {
+            background-color: #eceff1;
+        }
+    </style>
+</head>
+
+<body>
+<div class="navbar-fixed">
+    <nav>
+        <div class="nav-wrapper">
+            <ul id="nav-mobile" class="left">
+                <li><a class="waves-effect waves-light btn modal-trigger" href="#reset-modal">Reset</a></li>
+            </ul>
+            <ul id="nav-mobile" class="right">
+                <li><a id="button-work" class="button-action waves-effect waves-light btn-small" data-event="work"><i class="material-icons left">cloud</i>Work</a></li>
+                <li><a id="button-break" class="button-action waves-effect waves-light btn-small" data-event="break"><i class="material-icons left">cloud</i>Break</a></li>
+                <li><a id="button-distraction" class="button-action waves-effect waves-light btn-small" data-event="distraction"><i class="material-icons left">cloud</i>Distraction</a></li>
+                <li><a id="button-meeting" class="button-action waves-effect waves-light btn-small" data-event="meeting"><i class="material-icons left">cloud</i>Meeting</a></li>
+                <li><a class="waves-effect waves-light btn modal-trigger" href="#eod-modal"><i class="material-icons left">cloud</i>End</a></li>
+            </ul>
+        </div>
+    </nav>
+</div>
+
+<div id="main" class="container">
+    <table id="tracker-table">
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Event</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        </tbody>
+    </table>
+</div>
+
+<div id="eod-modal" class="modal">
+    <div class="modal-content">
+        <h4>End Of Day</h4>
+        <p>Going home?</p>
+    </div>
+    <div class="modal-footer">
+        <a class="modal-close button-action waves-effect waves-light btn-small">Nope... too early</a>
+        <a id="button-end" class="modal-close button-action waves-effect waves-light btn-small" data-event="eod">Yes! Time to rest</a>
+    </div>
+</div>
+
+<div id="reset-modal" class="modal">
+    <div class="modal-content">
+        <h4>Reset</h4>
+        <p>Really wanna start over? (all data will be lost)</p>
+    </div>
+    <div class="modal-footer">
+        <a class="modal-close button-action waves-effect waves-light btn-small">Na, I'll keep at it</a>
+        <a id="button-reset" class="modal-close waves-effect waves-light btn-small" data-event="eod">Yes, I need a second chance</a>
+    </div>
+</div>
+
+<!--JavaScript at end of body for optimized loading-->
+<script type="text/javascript" src="js/materialize.min.js"></script>
+<script>
+
+    let entries = loadFromLocalStorage();
+    let table = document.getElementById("tracker-table");
+    const actionButtons = document.getElementsByClassName('button-action');
+    const resetButton = document.getElementById('button-reset');
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var elems = document.querySelectorAll('.modal');
+        var instances = M.Modal.init(elems, {preventScrolling: true});
+    });
+
+    resetButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        clearTable();
+        clearLocalStorage()
+    });
+
+    Array.from(actionButtons).forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetElement = e.target || e.srcElement;
+            const event = targetElement.dataset['event'];
+            const time = Date.now();
+            const entry = {
+                'time': time,
+                'event': event
+            };
+            drawAddTableLine(entry);
+            pushToEntries(entry);
+        });
+    });
+
+    function pushToEntries(entry) {
+        entries.push(entry);
+        saveToLocalStorage();
+        console.log("Entry added - ", entry);
+    }
+
+    function drawTable() {
+        if (entries.length < 1) return;
+        let row = table.insertRow();
+        let timeCell = row.insertCell(0);
+        let eventCell = row.insertCell(1);
+        row.classList.add('dark');
+        const date = new Date(Date.now()).toLocaleDateString();
+        timeCell.innerHTML = date;
+        for (let entry of entries) {
+            drawAddTableLine(entry);
+        };
+        console.log('Table is drawn');
+    }
+
+    function drawAddTableLine(entry) {
+        const lastRow = table.rows[table.rows.length-1];
+        let row = table.insertRow();
+        let timeCell = row.insertCell(0);
+        let eventCell = row.insertCell(1);
+        console.log(lastRow.cells[1].innerText)
+        if(table.rows.length < 1 || lastRow.cells[1].innerText == 'eod' || lastRow.cells[1].innerText == 'Event') {
+            row.classList.add('dark');
+            const date = new Date(Date.now()).toLocaleDateString();
+            timeCell.innerHTML = date;
+            row = table.insertRow();
+            timeCell = row.insertCell(0);
+            eventCell = row.insertCell(1);
+        }
+        const entry_date = new Date(entry.time);
+        const hours = entry_date.getHours();
+        const mins = entry_date.getMinutes();
+        const secs = entry_date.getMinutes();
+
+        timeCell.innerText = hours+":"+mins+":"+secs;
+        eventCell.innerText = entry.event;
+        window.scrollTo(0,document.body.scrollHeight);
+        console.log('New line added to table - ', row);
+    }
+
+    function saveToLocalStorage() {
+        const entries_json = JSON.stringify(entries);
+        window.localStorage.setItem('entries_json', entries_json);
+    }
+
+    function loadFromLocalStorage() {
+        const entries_json = window.localStorage.getItem('entries_json');
+        if(entries_json != null) return JSON.parse(entries_json);
+        else return [];
+    }
+
+    function clearTable() {
+        for (let i = table.rows.length-1; i > 0; i--) {
+            table.deleteRow(i);
+        }
+        console.log("Cleared table");
+    }
+
+    function clearLocalStorage() {
+        localStorage.clear();
+        console.log("Cleared local storage");
+    }
+
+    drawTable();
+</script>
+</body>
+</html>
